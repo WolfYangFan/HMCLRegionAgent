@@ -1,0 +1,44 @@
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository
+
+def centralMirrors = [
+    'https://mirrors.cloud.tencent.com/nexus/repository/maven-public',
+    'https://maven.aliyun.com/repository/central',
+    'https://maven-central.storage-download.googleapis.com/maven2',
+]
+
+def addCentralMirrors = { repositories ->
+    centralMirrors.each { mirror ->
+        repositories.maven { url = uri(mirror) }
+    }
+}
+
+// Replace Maven Central where it was declared, keeping other repositories intact
+def mirrorMavenCentral = { repositories ->
+    repositories.all { repository ->
+        if (repository instanceof MavenArtifactRepository &&
+                repository.url.toString().replaceAll('/+$', '') in [
+                    'https://repo.maven.apache.org/maven2',
+                    'https://repo1.maven.org/maven2',
+                ]) {
+            repository.url = uri(centralMirrors.first())
+            centralMirrors.drop(1).each { mirror ->
+                repositories.maven { url = uri(mirror) }
+            }
+        }
+    }
+}
+
+// Plugin transitive dependencies must also avoid the rate-limited Central endpoint
+gradle.beforeSettings { settings ->
+    addCentralMirrors(settings.pluginManagement.repositories)
+    settings.pluginManagement.repositories.gradlePluginPortal()
+    mirrorMavenCentral(settings.dependencyResolutionManagement.repositories)
+}
+
+// Register before the root build configures repositories on its subprojects
+gradle.projectsLoaded {
+    gradle.rootProject.allprojects { project ->
+        mirrorMavenCentral(project.repositories)
+        mirrorMavenCentral(project.buildscript.repositories)
+    }
+}

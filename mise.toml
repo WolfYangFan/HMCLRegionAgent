@@ -1,0 +1,30 @@
+[tools]
+java = "liberica-javafx-17.0.20.1+1"
+
+[env]
+GRADLE_USER_HOME = "{{ config_root }}/.gradle"
+
+[tasks.build]
+description = "Build HMCL and generate JAR, EXE, SH and DEB artifacts"
+dir = "{{ config_root }}/HMCL-source"
+run = './gradlew --init-script "{{ config_root }}/gradle/mirrors.init.gradle" --no-daemon makeExecutables makeDeb'
+
+[tasks.gradle]
+description = "Run the HMCL Gradle Wrapper with optional Gradle arguments"
+dir = "{{ config_root }}/HMCL-source"
+run = './gradlew --init-script "{{ config_root }}/gradle/mirrors.init.gradle"'
+
+[tasks."agent:build"]
+description = "Build HMCL Region Agent"
+dir = "{{ config_root }}"
+run = './HMCL-source/gradlew --project-dir . --init-script gradle/mirrors.init.gradle --no-daemon build'
+
+[tasks."agent:test"]
+description = "Verify the agent against a local HMCL build"
+dir = "{{ config_root }}"
+run = './HMCL-source/gradlew --project-dir . --init-script gradle/mirrors.init.gradle --no-daemon check -PhmclJar=HMCL-source/HMCL/build/libs/HMCL-3.17.SNAPSHOT.jar'
+
+[tasks."agent:gradle"]
+description = "Run agent Gradle tasks with optional arguments"
+dir = "{{ config_root }}"
+run = './HMCL-source/gradlew --project-dir . --init-script gradle/mirrors.init.gradle'
